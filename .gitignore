@@ -1,0 +1,27 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+dorm-tracker
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Environment variables
+.env
+
+# Database and uploaded files
+data/
+uploads/*
+!uploads/.gitkeep
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

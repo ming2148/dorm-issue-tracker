@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: dorm-issue-tracker-app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DB_DRIVER=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=condocare
+      - DB_PASSWORD=condocare_secret
+      - DB_NAME=dorm_tracker
+      - DB_SSLMODE=disable
+      - JWT_SECRET=super-secret-jwt-key-for-condocare-prod
+      - JWT_REFRESH_SECRET=refresh-secret-jwt-key-prod
+    depends_on:
+      - postgres
+    volumes:
+      - ./uploads:/app/uploads
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: dorm-issue-tracker-db
+    restart: always
+    environment:
+      POSTGRES_USER: condocare
+      POSTGRES_PASSWORD: condocare_secret
+      POSTGRES_DB: dorm_tracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

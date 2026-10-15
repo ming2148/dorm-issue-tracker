@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CondoCare • ระบบจัดการงานซ่อมแซมภายในหอพัก/คอนโด</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome / Lucide Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .tab-active { border-bottom: 3px solid #16a34a; color: #16a34a; font-weight: 600; }
+        .glass-header { backdrop-filter: blur(8px); background-color: rgba(255, 255, 255, 0.95); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 glass-header border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-700 to-emerald-500 flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-building-circle-check text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-brand-800 bg-clip-text text-transparent">CondoCare</span>
+                    <span class="text-xs block text-slate-500 font-medium">ระบบจัดการงานซ่อมแซมหอพัก/คอนโด</span>
+                </div>
+            </div>
+
+            <!-- User Status & Quick Demo Switcher -->
+            <div class="flex items-center space-x-3">
+                <!-- Demo Quick Switcher Button -->
+                <div class="hidden sm:flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
+                    <span class="text-xs font-semibold px-2 text-slate-500">ทดสอบระบบ:</span>
+                    <button onclick="demoLogin('resident')" class="text-xs px-2.5 py-1 rounded bg-white hover:bg-emerald-50 text-emerald-700 font-medium shadow-sm transition">
+                        <i class="fa-solid fa-user mr-1"></i>ลูกบ้าน (402)
+                    </button>
+                    <button onclick="demoLogin('admin')" class="text-xs px-2.5 py-1 rounded hover:bg-amber-50 text-amber-700 font-medium transition ml-1">
+                        <i class="fa-solid fa-shield-halved mr-1"></i>นิติบุคคล / ช่าง
+                    </button>
+                </div>
+
+                <!-- User Profile & Logout -->
+                <div id="userProfileNav" class="hidden flex items-center space-x-3 pl-3 border-l border-slate-200">
+                    <div class="text-right">
+                        <div id="navUserName" class="text-sm font-semibold text-slate-800">ผู้ใช้งาน</div>
+                        <div id="navUserRoleBadge" class="text-xs px-2 py-0.5 rounded-full inline-block font-medium">ลูกบ้าน</div>
+                    </div>
+                    <button onclick="logout()" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="ออกจากระบบ">
+                        <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+                    </button>
+                </div>
+
+                <div id="guestNav" class="flex items-center space-x-2">
+                    <button onclick="openModal('authModal')" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition">
+                        เข้าสู่ระบบ / สมัครสมาชิก
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- ================= GUEST HERO / NOT LOGGED IN ================= -->
+        <div id="guestHero" class="hidden max-w-3xl mx-auto text-center py-12">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold mb-4">
+                <i class="fa-solid fa-check-circle"></i> Production-ready Go 1.22+ Architecture
+            </div>
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight sm:text-5xl mb-4">
+                ระบบแจ้งซ่อมแซมภายในคอนโดมิเนียม
+            </h1>
+            <p class="text-lg text-slate-600 mb-8">
+                บริหารจัดการงานแจ้งซ่อมสะดวกรวดเร็ว ติดตามสถานะแบบเรียลไทม์ พร้อมระบบแบ่งสิทธิ์แยกลูกบ้าน นิติบุคคล และช่างซ่อมบำรุงอย่างปลอดภัย
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <button onclick="demoLogin('resident')" class="px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold shadow-md hover:bg-brand-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-key"></i> ทดลองเข้าใช้งานในฐานะ "ลูกบ้าน" (ห้อง 402)
+                </button>
+                <button onclick="demoLogin('admin')" class="px-6 py-3 rounded-xl bg-slate-800 text-white font-semibold shadow-md hover:bg-slate-900 transition flex items-center gap-2">
+                    <i class="fa-solid fa-toolbox"></i> ทดลองเข้าใช้งานในฐานะ "นิติบุคคล / ช่าง"
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= RESIDENT PORTAL ================= -->
+        <div id="residentPortal" class="hidden space-y-8">
+            <!-- Welcome Header -->
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold flex items-center gap-2">
+                        <span>ยินดีต้อนรับ,</span> <span id="residentHeaderName">คุณสมชาย</span>
+                    </h2>
+                    <p class="text-emerald-100 text-sm mt-1">
+                        หมายเลขห้อง: <span id="residentHeaderRoom" class="font-bold underline text-white">402</span> • ติดตามสถานะงานซ่อมแซมและแจ้งปัญหาใหม่ได้ตลอด 24 ชั่วโมง
+                    </p>
+                </div>
+                <button onclick="openModal('createTicketModal')" class="px-5 py-2.5 bg-white text-emerald-800 font-semibold rounded-xl shadow hover:bg-emerald-50 transition flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus text-emerald-600 text-lg"></i> แจ้งซ่อมปัญหาใหม่
+                </button>
+            </div>
+
+            <!-- Resident Ticket Status Tabs -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="border-b border-slate-200 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex space-x-6 text-sm">
+                        <button onclick="switchResidentTab('All')" id="resTabAll" class="tab-active py-2 px-1 focus:outline-none transition">ทั้งหมด</button>
+                        <button onclick="switchResidentTab('Pending')" id="resTabPending" class="text-slate-500 hover:text-slate-700 py-2 px-1 focus:outline-none transition">รอดำเนินการ (Pending)</button>
+                        <button onclick="switchResidentTab('In_Progress')" id="resTabInProgress" class="text-slate-500 hover:text-slate-700 py-2 px-1 focus:outline-none transition">กำลังดำเนินการ</button>
+                        <button onclick="switchResidentTab('Completed')" id="resTabCompleted" class="text-slate-500 hover:text-slate-700 py-2 px-1 focus:outline-none transition">ซ่อมเสร็จแล้ว (รอรีวิว)</button>
+                        <button onclick="switchResidentTab('Closed')" id="resTabClosed" class="text-slate-500 hover:text-slate-700 py-2 px-1 focus:outline-none transition">ปิดงานแล้ว</button>
+                    </div>
+                    <button onclick="loadResidentTickets()" class="text-xs text-slate-500 hover:text-brand-600 flex items-center gap-1 font-medium">
+                        <i class="fa-solid fa-rotate-right"></i> รีเฟรชรายการ
+                    </button>
+                </div>
+
+                <!-- Tickets Container -->
+                <div id="residentTicketsList" class="p-6 divide-y divide-slate-100">
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-brand-600"></i>
+                        <p>กำลังโหลดข้อมูลรายการแจ้งซ่อม...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN & TECHNICIAN DASHBOARD ================= -->
+        <div id="adminPortal" class="hidden space-y-8">
+            <!-- Dashboard Overview Cards -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-brand-600"></i> แดชบอร์ดภาพรวมงานซ่อม (นิติบุคคล & ช่าง)
+                    </h2>
+                    <span class="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded-full font-semibold">อัปเดตข้อมูลสด</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <!-- Total -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-medium text-slate-500">งานทั้งหมด</div>
+                            <div id="statTotal" class="text-2xl font-bold text-slate-900">-</div>
+                        </div>
+                    </div>
+                    <!-- Pending -->
+                    <div class="bg-white p-5 rounded-2xl border border-amber-200 bg-amber-50/30 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-medium text-amber-700">รอดำเนินการ (Pending)</div>
+                            <div id="statPending" class="text-2xl font-bold text-amber-700">-</div>
+                        </div>
+                    </div>
+                    <!-- In Progress -->
+                    <div class="bg-white p-5 rounded-2xl border border-blue-200 bg-blue-50/30 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-wrench"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-medium text-blue-700">กำลังซ่อม (In Progress)</div>
+                            <div id="statInProgress" class="text-2xl font-bold text-blue-700">-</div>
+                        </div>
+                    </div>
+                    <!-- Completed -->
+                    <div class="bg-white p-5 rounded-2xl border border-emerald-200 bg-emerald-50/30 shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-medium text-emerald-700">เสร็จสิ้น (Completed)</div>
+                            <div id="statCompleted" class="text-2xl font-bold text-emerald-700">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart & Analytics section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Doughnut Chart -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-1">
+                    <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-brand-600"></i> สัดส่วนปัญหาแยกตามหมวดหมู่
+                    </h3>
+                    <div class="relative h-56 flex items-center justify-center">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Admin Action Table -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 flex flex-col">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-brand-600"></i> รายการแจ้งซ่อมทั้งหมดในระบบ
+                        </h3>
+                        <!-- Search & Filters -->
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <input type="text" id="adminSearchInput" oninput="filterAdminTickets()" placeholder="ค้นหา เลขที่/ห้อง/หัวข้อ..." class="text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand-500 w-full sm:w-44">
+                            <select id="adminStatusFilter" onchange="filterAdminTickets()" class="text-xs px-2.5 py-2 border border-slate-300 rounded-lg bg-white">
+                                <option value="All">ทุกสถานะ</option>
+                                <option value="Pending">Pending</option>
+                                <option value="In_Progress">In_Progress</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Closed">Closed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                            <select id="adminCategoryFilter" onchange="filterAdminTickets()" class="text-xs px-2.5 py-2 border border-slate-300 rounded-lg bg-white">
+                                <option value="All">ทุกหมวด</option>
+                                <option value="Electrical">ไฟฟ้า</option>
+                                <option value="Plumbing">ประปา</option>
+                                <option value="Appliance">เครื่องใช้ไฟฟ้า</option>
+                                <option value="Structural">โครงสร้าง</option>
+                                <option value="Other">อื่นๆ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto -mx-6 px-6">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-y border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-3">เลขที่ / วันที่</th>
+                                    <th class="py-3 px-3">ห้อง / ลูกบ้าน</th>
+                                    <th class="py-3 px-3">หัวข้อปัญหา & หมวด</th>
+                                    <th class="py-3 px-3">สถานะ</th>
+                                    <th class="py-3 px-3">ช่างผู้รับผิดชอบ</th>
+                                    <th class="py-3 px-3 text-right">การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTicketTableBody" class="divide-y divide-slate-100">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+        <p>CondoCare Issue Tracker • พัฒนาด้วย Go (Golang 1.22+) Gin Framework, GORM, Clean Architecture & SQLite/PostgreSQL</p>
+    </footer>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- 1. AUTH MODAL (Login & Register) -->
+    <div id="authModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex space-x-4 text-sm font-semibold">
+                    <button id="authTabLogin" onclick="switchAuthTab('login')" class="tab-active pb-2">เข้าสู่ระบบ</button>
+                    <button id="authTabRegister" onclick="switchAuthTab('register')" class="text-slate-400 pb-2">สมัครสมาชิกลูกบ้าน</button>
+                </div>
+                <button onclick="closeModal('authModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-6">
+                <!-- Login Form -->
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">อีเมล หรือ หมายเลขห้อง (Room No.)</label>
+                        <input type="text" id="loginIdentifier" required placeholder="เช่น resident@condo.local หรือ 402" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <button type="submit" class="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow transition text-sm">
+                        เข้าสู่ระบบ
+                    </button>
+                    
+                    <div class="mt-4 pt-4 border-t border-slate-100 text-center">
+                        <span class="text-xs text-slate-500">หรือทดสอบด้วยบัญชีตัวอย่าง:</span>
+                        <div class="flex justify-center gap-2 mt-2">
+                            <button type="button" onclick="demoLogin('resident')" class="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg font-medium hover:bg-emerald-100 transition">
+                                ลูกบ้าน (402)
+                            </button>
+                            <button type="button" onclick="demoLogin('admin')" class="text-xs px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg font-medium hover:bg-amber-100 transition">
+                                นิติบุคคล (Admin)
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อ-นามสกุล</label>
+                        <input type="text" id="regFullName" required placeholder="คุณสมศรี มั่งมี" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">หมายเลขห้อง</label>
+                            <input type="text" id="regRoomNo" required placeholder="เช่น 504" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์</label>
+                            <input type="tel" id="regPhone" required placeholder="089-123-4567" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">อีเมล</label>
+                        <input type="email" id="regEmail" required placeholder="user@example.com" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)</label>
+                        <input type="password" id="regPassword" required minlength="6" placeholder="••••••••" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <button type="submit" class="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow transition text-sm mt-2">
+                        สร้างบัญชีลูกบ้าน
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. FORM 1: CREATE REPAIR REQUEST MODAL -->
+    <div id="createTicketModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="px-6 py-4 bg-emerald-600 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-wrench text-lg"></i>
+                    <h3 class="font-bold text-base">แบบฟอร์มสร้างใบแจ้งซ่อม (Repair Request)</h3>
+                </div>
+                <button onclick="closeModal('createTicketModal')" class="text-emerald-100 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="createTicketForm" onsubmit="handleCreateTicket(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">หัวข้อปัญหา (Title) <span class="text-rose-500">*</span></label>
+                    <input type="text" id="ctTitle" required placeholder="เช่น ท่อน้ำอ่างล้างจานรั่ว, ไฟระเบียงไม่ติด" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">หมวดหมู่งานซ่อม <span class="text-rose-500">*</span></label>
+                        <select id="ctCategory" required class="w-full text-sm px-3 py-2.5 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-brand-500">
+                            <option value="Plumbing">ประปา (Plumbing)</option>
+                            <option value="Electrical">ไฟฟ้า (Electrical)</option>
+                            <option value="Appliance">เครื่องใช้ไฟฟ้า (Appliance)</option>
+                            <option value="Structural">โครงสร้าง/ประตู/หน้าต่าง (Structural)</option>
+                            <option value="Other">อื่นๆ (Other)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">ระดับความเร่งด่วน <span class="text-rose-500">*</span></label>
+                        <select id="ctUrgency" required class="w-full text-sm px-3 py-2.5 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-brand-500">
+                            <option value="Normal">ปกติ (Normal)</option>
+                            <option value="Urgent">ด่วน (Urgent)</option>
+                            <option value="Emergency">ด่วนมาก (Emergency)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">หมายเลขห้อง (Auto-fill จากเซสชัน)</label>
+                    <input type="text" id="ctRoomNo" readonly class="w-full text-sm px-3.5 py-2.5 bg-slate-100 border border-slate-300 rounded-xl text-slate-600 font-semibold cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">รายละเอียดปัญหา (Description) <span class="text-rose-500">*</span></label>
+                    <textarea id="ctDescription" required rows="3" placeholder="ระบุตำแหน่งและอาการของปัญหาอย่างละเอียด เพื่อให้ช่างเตรียมอุปกรณ์ได้ตรงจุด..." class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">รูปถ่ายประกอบ (รองรับหลายไฟล์, .jpg, .png ขนาดไม่เกิน 5MB)</label>
+                    <input type="file" id="ctImages" multiple accept="image/png, image/jpeg, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('createTicketModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">ยกเลิก</button>
+                    <button type="submit" id="btnSubmitTicket" class="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow transition">
+                        <i class="fa-solid fa-paper-plane mr-1"></i> ยืนยันส่งใบแจ้งซ่อม
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. EDIT TICKET MODAL (Pending Only) -->
+    <div id="editTicketModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="px-6 py-4 bg-amber-600 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <h3 class="font-bold text-base">แก้ไขใบแจ้งซ่อม (เฉพาะสถานะรอดำเนินการ)</h3>
+                </div>
+                <button onclick="closeModal('editTicketModal')" class="text-amber-100 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="editTicketForm" onsubmit="handleUpdateTicket(event)" class="p-6 space-y-4">
+                <input type="hidden" id="editTicketID">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">หัวข้อปัญหา <span class="text-rose-500">*</span></label>
+                    <input type="text" id="etTitle" required class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">หมวดหมู่งานซ่อม</label>
+                        <select id="etCategory" required class="w-full text-sm px-3 py-2.5 border border-slate-300 rounded-xl bg-white">
+                            <option value="Plumbing">ประปา (Plumbing)</option>
+                            <option value="Electrical">ไฟฟ้า (Electrical)</option>
+                            <option value="Appliance">เครื่องใช้ไฟฟ้า (Appliance)</option>
+                            <option value="Structural">โครงสร้าง (Structural)</option>
+                            <option value="Other">อื่นๆ (Other)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">ระดับความเร่งด่วน</label>
+                        <select id="etUrgency" required class="w-full text-sm px-3 py-2.5 border border-slate-300 rounded-xl bg-white">
+                            <option value="Normal">ปกติ (Normal)</option>
+                            <option value="Urgent">ด่วน (Urgent)</option>
+                            <option value="Emergency">ด่วนมาก (Emergency)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">รายละเอียดปัญหา</label>
+                    <textarea id="etDescription" required rows="3" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('editTicketModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow transition">
+                        บันทึกการแก้ไข
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. FORM 2: FEEDBACK & RATING MODAL (Completed status only) -->
+    <div id="feedbackModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="px-6 py-4 bg-teal-600 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-star text-amber-300"></i>
+                    <h3 class="font-bold text-base">แบบฟอร์มประเมินความพึงพอใจงานซ่อม (Feedback)</h3>
+                </div>
+                <button onclick="closeModal('feedbackModal')" class="text-teal-100 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="feedbackForm" onsubmit="handleSubmitFeedback(event)" class="p-6 space-y-4">
+                <input type="hidden" id="feedbackTicketID">
+                
+                <div class="text-center">
+                    <label class="block text-xs font-semibold text-slate-700 mb-2">คะแนนความพึงพอใจ (1 - 5 ดาว) <span class="text-rose-500">*</span></label>
+                    <div class="flex justify-center items-center space-x-2 text-3xl text-slate-300 cursor-pointer" id="starRatingContainer">
+                        <i class="fa-solid fa-star star-btn hover:text-amber-400 transition" data-rating="1" onclick="setRating(1)"></i>
+                        <i class="fa-solid fa-star star-btn hover:text-amber-400 transition" data-rating="2" onclick="setRating(2)"></i>
+                        <i class="fa-solid fa-star star-btn hover:text-amber-400 transition" data-rating="3" onclick="setRating(3)"></i>
+                        <i class="fa-solid fa-star star-btn hover:text-amber-400 transition" data-rating="4" onclick="setRating(4)"></i>
+                        <i class="fa-solid fa-star star-btn hover:text-amber-400 transition" data-rating="5" onclick="setRating(5)"></i>
+                    </div>
+                    <input type="hidden" id="fbRatingVal" value="5">
+                    <div id="ratingTextDesc" class="text-xs text-amber-600 font-semibold mt-1">ยอดเยี่ยมมาก (5 ดาว)</div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">ความคิดเห็นเพิ่มเติม (Feedback Text)</label>
+                    <textarea id="fbComment" rows="3" placeholder="ระบุความประทับใจ หรือข้อเสนอแนะเพิ่มเติม..." class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">การประเมินช่างผู้รับผิดชอบ (Technician Evaluation)</label>
+                    <input type="text" id="fbTechEval" placeholder="เช่น ช่างสุภาพ ตรงต่อเวลา ฝีมือเรียบร้อย" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('feedbackModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow transition">
+                        <i class="fa-solid fa-check mr-1"></i> บันทึกการประเมิน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. ADMIN MANAGE TICKET MODAL -->
+    <div id="adminManageModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-100">
+            <div class="px-6 py-4 bg-slate-800 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i>
+                    <h3 class="font-bold text-base">จัดการงานซ่อม (Admin / Technician Action)</h3>
+                </div>
+                <button onclick="closeModal('adminManageModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="adminManageForm" onsubmit="handleAdminUpdateStatus(event)" class="p-6 space-y-4">
+                <input type="hidden" id="adminTicketID">
+                
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">เลขที่ใบแจ้งซ่อม:</span>
+                        <span id="admTicketNo" class="font-bold text-slate-800">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">ห้อง / ผู้แจ้ง:</span>
+                        <span id="admTicketRoomUser" class="font-semibold text-slate-800">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">หัวข้อ:</span>
+                        <span id="admTicketTitle" class="font-medium text-slate-800">-</span>
+                    </div>
+                </div>
+
+                <!-- Attached Photos Thumbnail View -->
+                <div id="admPhotosContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">รูปถ่ายประกอบปัญหาจากลูกบ้าน:</label>
+                    <div id="admPhotosGallery" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <!-- Action 1: Change Status -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">1. เปลี่ยนสถานะงานซ่อม (Ticket Status) <span class="text-rose-500">*</span></label>
+                    <select id="admStatusSelect" required class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-slate-500">
+                        <option value="Pending">รอดำเนินการ (Pending)</option>
+                        <option value="In_Progress">กำลังดำเนินการซ่อม (In_Progress)</option>
+                        <option value="Completed">ซ่อมเสร็จสิ้น (Completed)</option>
+                        <option value="Closed">ปิดงานซ่อม (Closed)</option>
+                        <option value="Cancelled">ยกเลิกรายการ (Cancelled)</option>
+                    </select>
+                </div>
+
+                <!-- Action 2: Assign Technician -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">2. มอบหมายงานช่าง (Assign Technician)</label>
+                    <select id="admTechSelect" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-slate-500">
+                        <option value="">-- ยังไม่มอบหมายช่าง --</option>
+                    </select>
+                </div>
+
+                <!-- Action 3: Internal Note -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">3. บันทึกผลการซ่อมแซมของช่าง (Internal Note / Technician Remark)</label>
+                    <textarea id="admInternalNote" rows="3" placeholder="ระบุการทำงาน เช่น เปลี่ยนซีลท่อยางเรียบร้อย, นัดหมายลูกบ้านเพื่อเข้าตรวจ..." class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('adminManageModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-black rounded-xl shadow transition">
+                        <i class="fa-solid fa-save mr-1"></i> บันทึกข้อมูล
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Frontend Core Application JavaScript -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
